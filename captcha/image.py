@@ -205,29 +205,39 @@ class ImageCaptcha(_Captcha):
         rand = int(0.25 * average)
         offset = int(average * 0.1)
 
+        bounding_boxes = []
         for im in images:
             w, h = im.size
             mask = im.convert('L').point(table)
-            image.paste(im, (offset, int((self._height - h) / 2)), mask)
+            origin = (offset, int((self._height - h) / 2))
+            image.paste(im, origin, mask)
+            bounding_box = origin + (origin[0]+w, origin[1]+h)
+            bounding_boxes.append(bounding_box)
             offset = offset + w + random.randint(-rand, 0)
 
         if width > self._width:
             image = image.resize((self._width, self._height))
 
-        return image
+        return image, bounding_boxes
 
-    def generate_image(self, chars):
+    def generate_image(self, chars, return_bbs=False):
         """Generate the image of the given characters.
 
         :param chars: text to be generated.
+        :param return_bbs: boolean to determine returning the
+        bounding boxes of the text or not.
         """
         background = random_color(238, 255)
         color = random_color(0, 200, random.randint(220, 255))
-        im = self.create_captcha_image(chars, color, background)
+        im, bbs = self.create_captcha_image(chars, color, background)
         self.create_noise_dots(im, color)
         self.create_noise_curve(im, color)
         im = im.filter(ImageFilter.SMOOTH)
-        return im
+
+        if return_bbs:
+            return im, bbs
+        else:
+            return im
 
 
 def random_color(start, end, opacity=None):
