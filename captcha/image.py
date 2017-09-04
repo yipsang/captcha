@@ -138,6 +138,21 @@ class ImageCaptcha(_Captcha):
         return image
 
     @staticmethod
+    def create_noise_checker(image, color):
+        draw = Draw(image)
+        w, h = image.size
+        checker_density = random.randint(5, 10)
+        for i in range(h):
+            if i % checker_density == 0:
+                draw.line(((0, i), (w, i)), fill=color, width=random.randint(1,2))
+        for i in range(w):
+            if i % checker_density == 0:
+                draw.line(((i, 0), (i, h)), fill=color, width=random.randint(1,2))
+
+        return image
+
+
+    @staticmethod
     def create_noise_dots(image, color, width=3, number=30):
         draw = Draw(image)
         w, h = image.size
@@ -171,7 +186,7 @@ class ImageCaptcha(_Captcha):
 
             # rotate
             im = im.crop(im.getbbox())
-            im = im.rotate(random.uniform(-30, 30), Image.BILINEAR, expand=1)
+            im = im.rotate(random.uniform(-45, 45), Image.BILINEAR, expand=1)
 
             # warp
             dx = w * random.uniform(0.1, 0.3)
@@ -202,36 +217,56 @@ class ImageCaptcha(_Captcha):
         image = image.resize((width, self._height))
 
         average = int(text_width / len(chars))
-        rand = int(0.25 * average)
+        w_rand = int(0.3 * average)
         offset = int(average * 0.1)
+
+        trailing_space = width - text_width
+        if trailing_space <= 0 :
+            origin_x = offset
+        else:
+            origin_x = random.randint(offset, trailing_space)
 
         bounding_boxes = []
         for im in images:
             w, h = im.size
             mask = im.convert('L').point(table)
-            origin = (offset, int((self._height - h) / 2))
+            h_rand = int(0.2 * h)
+            origin_y = int((self._height - h) / 2) + random.randint(-h_rand, h_rand)
+            origin = (origin_x, origin_y)
             image.paste(im, origin, mask)
             bounding_box = origin + (origin[0]+w, origin[1]+h)
             bounding_boxes.append(bounding_box)
-            offset = offset + w + random.randint(-rand, 0)
+            origin_x = origin_x + w + random.randint(-w_rand, w_rand)
 
         if width > self._width:
             image = image.resize((self._width, self._height))
 
         return image, bounding_boxes
 
-    def generate_image(self, chars, return_bbs=False):
+    def generate_image(self, chars, noises_type=['dots', 'curve', 'checker'], return_bbs=False):
         """Generate the image of the given characters.
 
         :param chars: text to be generated.
         :param return_bbs: boolean to determine returning the
         bounding boxes of the text or not.
         """
-        background = random_color(238, 255)
-        color = random_color(0, 200, random.randint(220, 255))
+        background = random_color(0, 255)
+        while True:
+            noise_color = random_color(0, 255, random.randint(220, 255))
+            if noise_color != background:
+                break
+        while True:
+            color = random_color(200, 255, random.randint(220, 255))
+            if color != background and color != noise_color:
+                break
+
         im, bbs = self.create_captcha_image(chars, color, background)
-        self.create_noise_dots(im, color)
-        self.create_noise_curve(im, color)
+        if 'dots' in  noises_type:
+            self.create_noise_dots(im, noise_color)
+        if 'curve' in noises_type:
+            self.create_noise_curve(im, noise_color)
+        if 'checker' in noises_type:
+            self.create_noise_checker(im, noise_color)
         im = im.filter(ImageFilter.SMOOTH)
 
         if return_bbs:
