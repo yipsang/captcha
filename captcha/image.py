@@ -256,7 +256,7 @@ class ImageCaptcha(_Captcha):
             if noise_color != background:
                 break
         while True:
-            color = random_color(200, 255, random.randint(220, 255))
+            color = random_color(0, 255, random.randint(220, 255))
             if color != background and color != noise_color:
                 break
 
