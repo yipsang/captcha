@@ -230,7 +230,7 @@ class ImageCaptcha(_Captcha):
         for im in images:
             w, h = im.size
             mask = im.convert('L').point(table)
-            h_rand = int(0.2 * h)
+            h_rand = int(0.5 * h)
             origin_y = int((self._height - h) / 2) + random.randint(-h_rand, h_rand)
             origin = (origin_x, origin_y)
             image.paste(im, origin, mask)
