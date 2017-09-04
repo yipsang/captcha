@@ -221,7 +221,7 @@ class ImageCaptcha(_Captcha):
         offset = int(average * 0.1)
 
         trailing_space = width - text_width
-        if trailing_space <= 0 :
+        if trailing_space <= 0 or trailing_space <= offset:
             origin_x = offset
         else:
             origin_x = random.randint(offset, trailing_space)
