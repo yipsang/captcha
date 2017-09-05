@@ -220,14 +220,25 @@ class ImageCaptcha(_Captcha):
         w_rand = int(0.3 * average)
         offset = int(average * 0.1)
 
-        trailing_space = width - text_width
-        if trailing_space <= 0 or trailing_space <= offset:
-            origin_x = offset
-        else:
-            origin_x = random.randint(offset, trailing_space)
-
-        bounding_boxes = []
+        # Calculate all the origin_xs of chars to get the true text width
+        origin_xs = []
+        origin_x = 0
         for im in images:
+            origin_xs.append(origin_x)
+            w, h = im.size
+            origin_x = origin_x + w + random.randint(-w_rand, w_rand)
+
+        true_text_width = origin_xs[-1] + w - origin_xs[0]
+
+        trailing_space = width - true_text_width
+        if trailing_space <= 0 or trailing_space <= offset:
+            origin_x_offset = offset
+        else:
+            origin_x_offset = random.randint(offset, trailing_space)
+
+        origin_xs = [origin_x+origin_x_offset for origin_x in origin_xs]
+        bounding_boxes = []
+        for im, origin_x in zip(images, origin_xs):
             w, h = im.size
             mask = im.convert('L').point(table)
             h_rand = int(0.5 * h)
@@ -236,7 +247,6 @@ class ImageCaptcha(_Captcha):
             image.paste(im, origin, mask)
             bounding_box = origin + (origin[0]+w, origin[1]+h)
             bounding_boxes.append(bounding_box)
-            origin_x = origin_x + w + random.randint(-w_rand, w_rand)
 
         if width > self._width:
             image = image.resize((self._width, self._height))
